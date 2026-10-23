@@ -1,6 +1,5 @@
 
-import re
-import nltk
+import re, nltk
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
@@ -11,28 +10,25 @@ nltk.download('stopwords')
 
 text = "Natural Language Processing is a fascinating field of AI. It involves processing human languages, like English!"
 
-tokens = word_tokenize(text)
-print("Tokens:", tokens)
+# Tokenization
+t = word_tokenize(text)
+print("Tokens:", t)
 
-filtered_tokens = [re.sub(r'[^\w\s]', '', token) for token in tokens]
-filtered_tokens = [token for token in filtered_tokens if token]
-print("Filtered Tokens:", filtered_tokens)
+# Filtration
+t = [re.sub(r'[^\w\s]', '', x) for x in t]
+t = [x for x in t if x.isalpha()]
+print("Filtered:", t)
 
-validated_tokens = [
-    token for token in filtered_tokens
-    if re.match(r'^[a-zA-Z]+$', token)
-]
-print("Validated Tokens:", validated_tokens)
+# Script Validation
+t = [x for x in t if re.match(r'^[a-zA-Z]+$', x)]
+print("Validated:", t)
 
+# Stop Word Removal
 stop_words = set(stopwords.words('english'))
-filtered_tokens = [
-    token for token in validated_tokens
-    if token.lower() not in stop_words
-]
-print("Stopword Removed Tokens:", filtered_tokens)
+t = [x for x in t if x.lower() not in stop_words]
+print("Without Stopwords:", t)
 
+# Stemming
 stemmer = PorterStemmer()
-stemmed_tokens = [
-    stemmer.stem(token) for token in filtered_tokens
-]
-print("Stemmed Tokens:", stemmed_tokens)
+t = [stemmer.stem(x) for x in t]
+print("Stemmed:", t)
