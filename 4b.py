@@ -1,67 +1,4 @@
 
-from collections import defaultdict
-
-class Parser:
-    def __init__(self, grammar, start_symbol="S"):
-        self.start_symbol = start_symbol
-        self.rules = defaultdict(list)
-        for lhs, rhs in grammar:
-            self.rules[lhs].append(rhs)
-
-    def top_down_parse(self, sentence):
-        def parse(symbol, index):
-            if symbol not in self.rules:
-                if index < len(sentence) and sentence[index] == symbol:
-                    return True, (symbol,), index + 1
-                return False, None, index
-
-            for production in self.rules[symbol]:
-                new_index, children, success = index, [], True
-
-                for sym in production:
-                    success, subtree, new_index = parse(sym, new_index)
-                    if not success:
-                        break
-                    children.append(subtree)
-
-                if success:
-                    return True, (symbol, children), new_index
-
-            return False, None, index
-
-        success, tree, index = parse(self.start_symbol, 0)
-        return tree if success and index == len(sentence) else None
-
-    def bottom_up_parse(self, sentence):
-        stack, input_buffer, steps = [], sentence[:], []
-
-        while True:
-            if stack == [self.start_symbol] and not input_buffer:
-                return steps + [("ACCEPT", stack[:], input_buffer[:])]
-
-            if input_buffer:
-                stack.append(input_buffer.pop(0))
-                steps.append(("SHIFT", stack[:], input_buffer[:]))
-
-            reduced = True
-            while reduced:
-                reduced = False
-                for lhs, rhs_list in self.rules.items():
-                    for rhs in rhs_list:
-                        if len(stack) >= len(rhs) and stack[-len(rhs):] == rhs:
-                            stack[-len(rhs):] = [lhs]
-                            steps.append(
-                                (f"REDUCE {lhs}->{rhs}", stack[:], input_buffer[:])
-                            )
-                            reduced = True
-                            break
-                    if reduced:
-                        break
-
-            if not input_buffer and stack != [self.start_symbol]:
-                return steps + [("REJECT", stack[:], input_buffer[:])]
-
-
 grammar = [
     ("S", ["NP", "VP"]),
     ("NP", ["Det", "N"]),
@@ -75,12 +12,72 @@ grammar = [
     ("V", ["eats"])
 ]
 
-parser = Parser(grammar)
+
+# Top-Down Parser
+def top_down_parse(symbol, sentence, index=0):
+    if symbol not in dict((lhs, None) for lhs, rhs in grammar):
+        if index < len(sentence) and sentence[index] == symbol:
+            return True, (symbol,), index + 1
+        return False, None, index
+
+    for lhs, rhs in grammar:
+        if lhs == symbol:
+            children = []
+            pos = index
+
+            for item in rhs:
+                success, tree, pos = top_down_parse(
+                    item, sentence, pos
+                )
+                if not success:
+                    break
+                children.append(tree)
+            else:
+                return True, (symbol, children), pos
+
+    return False, None, index
+
+
+# Bottom-Up Parser
+def bottom_up_parse(sentence):
+    stack = []
+    buffer = sentence.copy()
+
+    while True:
+        if stack == ["S"] and not buffer:
+            print("ACCEPT")
+            return
+
+        if buffer:
+            stack.append(buffer.pop(0))
+            print(f"SHIFT           | Stack: {stack} | Buffer: {buffer}")
+
+        changed = True
+        while changed:
+            changed = False
+
+            for lhs, rhs in grammar:
+                if len(stack) >= len(rhs) and stack[-len(rhs):] == rhs:
+                    stack = stack[:-len(rhs)] + [lhs]
+                    print(
+                        f"REDUCE {lhs}->{rhs} | "
+                        f"Stack: {stack} | Buffer: {buffer}"
+                    )
+                    changed = True
+                    break
+
+        if not buffer and stack != ["S"]:
+            print(f"REJECT          | Stack: {stack} | Buffer: {buffer}")
+            return
+
+
+# Main Program
 sentence = ["the", "cat", "chases", "a", "dog"]
 
+success, tree, index = top_down_parse("S", sentence)
+
 print("Top-Down Parse Tree:")
-print(parser.top_down_parse(sentence))
+print(tree if success and index == len(sentence) else "Rejected")
 
 print("\nBottom-Up Parsing Steps:")
-for action, stack, input_buffer in parser.bottom_up_parse(sentence):
-    print(f"{action:15} | Stack: {stack} | Buffer: {input_buffer}")
+bottom_up_parse(sentence)
