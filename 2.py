@@ -1,62 +1,34 @@
 import nltk
 from nltk.util import ngrams
-from collections import Counter, defaultdict
+from collections import Counter
 
 nltk.download('punkt')
 nltk.download('punkt_tab')
 
 sentences = [
     "The quick brown fox jumps over the lazy dog",
-    "The quick brown fox is quick"
+    "The dog barks at the fox",
+    "The fox is quick and the dog is lazy",
+    "The quick dog jumps over the lazy fox"
 ]
 
-unigram_counts = Counter()
-bigram_counts = Counter()
-trigram_counts = Counter()
+words = [nltk.word_tokenize(s.lower()) for s in sentences]
 
-bigram_context = defaultdict(int)
-trigram_context = defaultdict(int)
+for n in [1, 2, 3]:
+    count = Counter()
+    prev = Counter()
 
-for sentence in sentences:
-    tokens = nltk.word_tokenize(sentence.lower())
+    for sentence in words:
+        count.update(ngrams(sentence, n))
+        if n > 1:
+            prev.update(ngrams(sentence, n - 1))
 
-    unigrams = list(ngrams(tokens, 1))
-    bigrams = list(ngrams(tokens, 2))
-    trigrams = list(ngrams(tokens, 3))
+    print("\n", n, "-Gram Probabilities:")
 
-    unigram_counts.update(unigrams)
-    bigram_counts.update(bigrams)
-    trigram_counts.update(trigrams)
+    for gram, frequency in count.items():
+        if n == 1:
+            probability = frequency / sum(count.values())
+        else:
+            probability = frequency / prev[gram[:-1]]
 
-    for bigram in bigrams:
-        bigram_context[bigram[0]] += 1
-
-    for trigram in trigrams:
-        trigram_context[trigram[:2]] += 1
-
-print("Unigram Counts:")
-print(unigram_counts)
-
-print("\nBigram Counts:")
-print(bigram_counts)
-
-print("\nTrigram Counts:")
-print(trigram_counts)
-
-print("\nUnigram Probabilities:")
-total_unigrams = sum(unigram_counts.values())
-
-for unigram, count in unigram_counts.items():
-    print(unigram, ":", count / total_unigrams)
-
-print("\nBigram Probabilities:")
-
-for bigram, count in bigram_counts.items():
-    probability = count / bigram_context[bigram[0]]
-    print(bigram, ":", probability)
-
-print("\nTrigram Probabilities:")
-
-for trigram, count in trigram_counts.items():
-    probability = count / trigram_context[trigram[:2]]
-    print(trigram, ":", probability)
+        print(" ".join(gram), ":", round(probability, 4))
